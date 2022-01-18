@@ -376,36 +376,7 @@ class CNNQNetwork(nn.Module):
                 action = torch.argmax(self.forward(obs.unsqueeze(0))).item()
         return action
 
-def update(batch_size, beta):
-    obs, action, reward, next_obs, done, indices, weights = replay_buffer.sample(batch_size, beta)
-    obs, action, reward, next_obs, done, weights \
-        = obs.float().to(device), action.to(device), reward.to(device), next_obs.float().to(device), done.to(device), weights.to(device)
 
-    #　ニューラルネットワークによるQ関数の出力から, .gatherで実際に選択した行動に対応する価値を集めてきます.
-    q_values = net(obs).gather(1, action.unsqueeze(1)).squeeze(1)
-    
-    # 目標値の計算なので勾配を追跡しない
-    with torch.no_grad():
-        # Double DQN. 
-        # ① 現在のQ関数でgreedyに行動を選択し, 
-        greedy_action_next = torch.argmax(net(next_obs), dim=1)
-        # ②　対応する価値はターゲットネットワークのものを参照します.
-        q_values_next = target_net(next_obs).gather(1, greedy_action_next.unsqueeze(1)).squeeze(1)
-
-    # ベルマン方程式に基づき, 更新先の価値を計算します.
-    # (1 - done)をかけているのは, ゲームが終わった後の価値は0とみなすためです.
-    target_q_values = reward + gamma * q_values_next * (1 - done)
-
-    # Prioritized Experience Replayのために, ロスに重み付けを行なって更新します.
-    optimizer.zero_grad()
-    loss = (weights * loss_func(q_values, target_q_values)).mean()
-    loss.backward()
-    optimizer.step()
-
-    #　TD誤差に基づいて, サンプルされた経験の優先度を更新します.
-    replay_buffer.update_priorities(indices, (target_q_values - q_values).abs().detach().cpu().numpy())
-
-    return loss.item()
 
 def make_env(noop_max=30, skip=4, width=84, height=84, grayscale=True):
     ENV_NAME = 'SuperMarioBros-1-1-v0'

@@ -1,2 +1,6 @@
+<<<<<<< HEAD
 *.gif
 logs*
+=======
+__pycache__/util.cpython-38.pyc
+>>>>>>> e3984dcc39ac3f01760a4227f3d4e4961d780c3d
